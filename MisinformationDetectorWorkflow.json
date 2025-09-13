@@ -1,0 +1,258 @@
+{
+  "name": "AI Misinformation Detector",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "path": "a8f3c1f-4d9-4f7-8c-1e2a8b9c4d0",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ],
+      "webhookId": "a8f3c1f-4d9-4f7-8c-1e2a8b9c4d0"
+    },
+    {
+      "parameters": {
+        "url": "={{$json.body.content}}",
+        "responseFormat": "text",
+        "options": {}
+      },
+      "name": "Scrape URL Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "sourceData": "={{$node[\"Scrape URL Content\"].json[\"data\"]}}",
+        "extractionValues": [
+          {
+            "key": "articleText",
+            "cssSelector": "body",
+            "returnValue": "text"
+          }
+        ]
+      },
+      "name": "Extract Text from HTML",
+      "type": "n8n-nodes-base.htmlExtract",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.inputType}}",
+              "operation": "equal",
+              "value2": "url"
+            }
+          ]
+        }
+      },
+      "name": "Is Input a URL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "prompt": "=You are a sophisticated AI fact-checker and media analyst. Your goal is to detect misinformation and educate users. Analyze the provided article content and source URL.\n\n**Source URL:**\n{{$json.body.content}}\n\n**Article Content:**\n{{$node[\"Extract Text from HTML\"].json.articleText.slice(0, 15000)}}\n\n**Your Tasks:**\n1.  **Summarize Key Claims:** Identify and list the 3-4 primary factual claims made in the article.\n2.  **Fact-Check Claims:** For each claim, use your search capabilities to find corroborating or conflicting information from reputable, independent sources. State whether each claim is 'Verified,' 'Unverifiable,' or 'Contradicted.'\n3.  **Analyze Source Credibility:** Evaluate the source domain. Is it a known reputable news organization, a blog, a state-sponsored site, or something else? Comment on its general reputation for accuracy.\n4.  **Detect Bias and Language:** Analyze the text for biased, sensationalist, or emotionally charged language. Provide specific examples from the text.\n5.  **Provide a Final Verdict:** Based on all the above, give a final credibility rating: 'High Trustworthiness,' 'Medium Trustworthiness,' 'Low Trustworthiness,' or 'Potential Misinformation.'\n6.  **Justify your verdict** with a concise, one-paragraph summary of your findings."
+      },
+      "name": "AI Analyst (URL)",
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        200
+      ],
+      "credentials": {
+        "googleGeminiApi": {
+          "id": "YOUR_GEMINI_API_CREDENTIAL_ID",
+          "name": "Google Gemini API account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "body": "={{ { \"analysis\": $node[\"AI Analyst (URL)\"].json, \"education\": $node[\"Educational Tips\"].json } }}",
+        "options": {}
+      },
+      "name": "Respond to Webhook (URL)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1800,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "education",
+              "value": "## How to Spot Misinformation:\n\n**1. Vet the Source:** Who is the author? What is the publication's reputation? Look for an \"About Us\" section and be wary of anonymous authors.\n\n**2. Read Beyond the Headline:** Headlines are designed to grab attention and often lack key context. Read the full article before drawing conclusions.\n\n**3. Look for Evidence:** Credible reporting cites sources, includes links, and quotes experts. If claims are made without evidence, be skeptical.\n\n**4. Check for Bias:** Notice if the language is emotionally charged, one-sided, or inflammatory. Objective reporting presents facts neutrally.\n\n**5. Check the Date:** Old news stories can be re-shared out of context. Check if the story is recent and relevant to current events.\n\n**6. Perform a Reverse Image Search:** Misleading content often uses images from unrelated events. You can use tools like Google Images to check the origin of a photo."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Educational Tips",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "prompt": "=You are a sophisticated AI fact-checker and media analyst. Your goal is to detect misinformation and educate users. Analyze the provided text.\n\n**Article Content:**\n{{$json.body.content.slice(0, 15000)}}\n\n**Your Tasks:**\n1.  **Summarize Key Claims:** Identify and list the 3-4 primary factual claims made in the text.\n2.  **Fact-Check Claims:** For each claim, use your search capabilities to find corroborating or conflicting information from reputable, independent sources. State whether each claim is 'Verified,' 'Unverifiable,' or 'Contradicted.'\n3.  **Detect Bias and Language:** Analyze the text for biased, sensationalist, or emotionally charged language. Provide specific examples from the text.\n4.  **Provide a Final Verdict:** Based on all the above, give a final credibility rating: 'High Trustworthiness,' 'Medium Trustworthiness,' 'Low Trustworthiness,' or 'Potential Misinformation.'\n5.  **Justify your verdict** with a concise, one-paragraph summary of your findings."
+      },
+      "name": "AI Analyst (Text)",
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        400
+      ],
+      "credentials": {
+        "googleGeminiApi": {
+          "id": "YOUR_GEMINI_API_CREDENTIAL_ID",
+          "name": "Google Gemini API account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "body": "={{ { \"analysis\": $node[\"AI Analyst (Text)\"].json, \"education\": $node[\"Educational Tips\"].json } }}",
+        "options": {}
+      },
+      "name": "Respond to Webhook (Text)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1800,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Is Input a URL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape URL Content": {
+      "main": [
+        [
+          {
+            "node": "Extract Text from HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from HTML": {
+      "main": [
+        [
+          {
+            "node": "AI Analyst (URL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Input a URL?": {
+      "main": [
+        [
+          {
+            "node": "Scrape URL Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Analyst (Text)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Analyst (URL)": {
+      "main": [
+        [
+          {
+            "node": "Educational Tips",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Educational Tips": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook (URL)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook (Text)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Analyst (Text)": {
+      "main": [
+        [
+          {
+            "node": "Educational Tips",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
